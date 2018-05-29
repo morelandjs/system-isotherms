@@ -315,10 +315,11 @@ def single_shot_events():
             np.save(cachefile, average_event)
 
         dndy = average_event.sum()*grid_step**2
+        dndy_max = np.max(average_event) if system == 'p p' else dndy_max
 
         xymax = grid_max[system]
         ax.imshow(average_event, extent=(-xymax, xymax, -xymax, xymax),
-                  cmap=cmap_to_alpha())
+                  cmap=cmap_to_alpha(), vmin=0, vmax=dndy_max)
 
         ax.set_xlabel('$x$ [fm]')
         if ax.is_first_col():
@@ -328,10 +329,10 @@ def single_shot_events():
         ax.annotate(r'$\langle dN_g/dy \rangle={0:.2f}$'.format(dndy), xy=(.9, .9),
                     xycoords='axes fraction', ha='right')
 
-        ax.set_xlim(-5, 5)
-        ax.set_ylim(-5, 5)
         ax.set_xticks([-4, -2, 0, 2, 4])
         ax.set_yticks([-4, -2, 0, 2, 4])
+        ax.set_xlim(-5, 5)
+        ax.set_ylim(-5, 5)
 
         ax.set_aspect('equal')
 
