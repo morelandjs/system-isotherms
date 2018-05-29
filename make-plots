@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 
-from collections import OrderedDict
 import argparse
+from collections import OrderedDict
+from itertools import islice
 import logging
 from pathlib import Path
 import subprocess
@@ -9,6 +10,7 @@ import subprocess
 import h5py
 import matplotlib.pyplot as plt
 import numpy as np
+from scipy.ndimage.measurements import center_of_mass
 
 # new tableau colors
 # https://www.tableau.com/about/blog/2016/7/colors-upgrade-tableau-10-56782
@@ -87,19 +89,8 @@ plotdir.mkdir(exist_ok=True)
 
 plot_functions = {}
 
-trento_map_param = [
-    '--normalization {}'.format(20.448),
-    '--cross-section {}'.format(7.0),
-    '--reduced-thickness {}'.format(0.010533),
-    '--fluctuation {}'.format(0.20643),
-    '--nucleon-width {}'.format(0.88919),
-    '--parton-number {}'.format(6),
-    '--parton-width {}'.format(0.41059),
-    '--nucleon-min-dist {}'.format(0.83528),
-    '--grid-step {} --grid-max {}'.format(0.082118, 15)
-]
-
-transport_map_param = []
+grid_max = {'p p': 4, 'p Pb': 6, 'Pb Pb': 8}
+grid_step = 0.082118
 
 
 def plot(f):
@@ -146,6 +137,34 @@ def set_tight(fig=None, **kwargs):
     fig.set_tight_layout(kwargs)
 
 
+def cmap_to_alpha(cmap=plt.cm.inferno, fraction=.2):
+    """
+    Fade the bottom of a colormap to white.
+
+    Currently only works with ListedColormap objects, of which the new cmaps
+    (inferno, magma, plasma, viridis) are examples.
+
+    """
+    try:
+        colors = cmap.colors.copy()
+        n = int(fraction*len(colors))
+
+        for i, rgb in enumerate(colors[:n]):
+            colors[i] = rgb + [i/n]
+
+        return type(cmap)(colors, cmap.name + '_mod')
+    except AttributeError:
+        cmin = 25 if cmap == plt.cm.Oranges_r else 0
+        colors = [list(cmap(n/256)) for n in range(cmin, 200)]
+        n = int(fraction*len(colors))
+
+        for i, rgb in enumerate(colors[:n]):
+            rgb[-1] = i/n
+            colors[i] = rgb
+
+        return ListedColormap(colors, cmap.name + '_mod')
+
+
 def run_cmd(*args):
     """
     Run and log a subprocess.
@@ -173,42 +192,57 @@ def run_cmd(*args):
         return proc
 
 
-def trento_mult(system, nevents=10**5):
+def trento_gen(system, mlo=0, mhi=float('inf'), return_array=False):
     """
-    Generate trento event attributes with nucleon substructure using
-    maximum a posteri parameters at 5.02 TeV.
+    Generates minimum bias trento events satisfying mlo < mult < mhi.
+
+    Yields initial condition event grids if array is True, otherwise
+    the event multiplicities.
 
     """
-    grid_max = {'p p': 4, 'p Pb': 7, 'Pb Pb': 10}[system]
-    grid_step = 0.2
-
-    cachefile = Path('cache', '{}.npy'.format(''.join(system.split())))
+    cachefile = Path('cache', 'events.hdf')
     cachefile.parent.mkdir(parents=True, exist_ok=True)
+    n = 0
 
-    if cachefile.exists():
-        return np.load(cachefile)
+    while True:
+        logging.info('running new batch of trento events')
 
-    proc = run_cmd(
-        'trento {}'.format(system),
-        '--number-events {}'.format(nevents),
-        '--normalization {}'.format(20.448),
-        '--cross-section {}'.format(7.0),
-        '--reduced-thickness {}'.format(0.010533),
-        '--fluctuation {}'.format(0.20643),
-        '--nucleon-width {}'.format(0.88919),
-        '--parton-number {}'.format(6),
-        '--parton-width {}'.format(0.41059),
-        '--nucleon-min-dist {}'.format(0.83528),
-        '--grid-max {} --grid-step {}'.format(grid_max, grid_step),
-    )
+        if cachefile.exists():
+            cachefile.unlink()
 
-    mult = np.array(
-        [l.split()[3] for l in proc.stdout.splitlines()], dtype=float
-    )
+        proc = run_cmd(
+            'trento {}'.format(system),
+            '--number-events {}'.format(10**4),
+            '--normalization {}'.format(20.448),
+            '--cross-section {}'.format(7.0),
+            '--reduced-thickness {}'.format(0.010533),
+            '--fluctuation {}'.format(0.20643),
+            '--nucleon-width {}'.format(0.88919),
+            '--parton-number {}'.format(6),
+            '--parton-width {}'.format(0.41059),
+            '--nucleon-min-dist {}'.format(0.83528),
+            '--grid-max {}'.format(grid_max[system]),
+            '--grid-step {}'.format(grid_step if return_array else 0.2),
+            '--output {}'.format(cachefile) if return_array else ''
+        )
 
-    np.save(cachefile, mult)
+        if return_array is True:
+            with h5py.File(cachefile, 'r') as f:
+                for ev in f.values():
+                    mult = ev.attrs['mult']
+                    renorm = (3 if system == 'p p' else 1)
+                    if mlo < renorm*mult < mhi:
+                        ev = np.array(ev)
+                        mid = 0.5*set(ev.shape).pop()
+                        di, dj = [int(index - mid) for index in center_of_mass(ev)]
 
-    return mult
+                        for shift, axis in [(-di, 0), (-dj, 1)]:
+                            ev = np.roll(ev, shift, axis=axis)
+
+                        yield renorm*ev
+        else:
+            for line in proc.stdout.splitlines():
+                yield float(line.split()[3])
 
 
 @plot
@@ -220,17 +254,26 @@ def mult_dist():
     """
     plt.figure(figsize=figsize(.6))
     bins = np.linspace(0, 300, 100)
-    const_dsdy = 100
+    const_dndy = 100
 
     for system in ['p p', 'p Pb', 'Pb Pb']:
-        dsdy = trento_mult(system)
-        cent = '{0:.3f}%'.format(100*sum(dsdy > const_dsdy)/dsdy.size)
+
+        cachefile = Path('cache', '{}-mult.npy'.format(''.join(system.split())))
+        cachefile.parent.mkdir(parents=True, exist_ok=True)
+
+        if cachefile.exists():
+            dndy = np.load(cachefile)
+        else:
+            dndy = np.fromiter(islice(trento_gen(system), 10**5), float)
+            np.save(cachefile, dndy)
+
+        cent = '{0:.3f}%'.format(100*sum(dndy > const_dndy)/dndy.size)
         label = '{}, {}'.format('-'.join(system.split()), cent)
-        plt.hist(dsdy, bins=bins, histtype='step', label=label)
+        plt.hist(dndy, bins=bins, histtype='step', label=label)
 
     plt.axvline(100, dashes=(4, 2), color=offblack)
 
-    plt.xlabel('$dS/dy$')
+    plt.xlabel('$dN_g/dy$')
     plt.xlim(0, 300)
     plt.ylabel('Events')
     plt.ylim(1, 10**5)
@@ -244,6 +287,55 @@ def mult_dist():
     )
     plt.setp(leg.get_title(), fontsize=fontsize['small'])
     set_tight()
+
+
+@plot
+def single_shot_events():
+    """
+    Generate a sample of minimum bias events satisfying mlo < mult < mhi,
+    and average the event profiles in their center of mass frame.
+
+    Plot the resulting 2D image profiles.
+
+    """
+    fig, axes = plt.subplots(ncols=3, sharey=True, figsize=figsize(1, .4))
+    systems = ['p p', 'p Pb', 'Pb Pb']
+
+    for ax, system in zip(axes, systems):
+        cachefile = Path('cache', '{}-avg-event.npy'.format(''.join(system.split())))
+        cachefile.parent.mkdir(parents=True, exist_ok=True)
+
+        if cachefile.exists():
+            average_event = np.load(cachefile)
+        else:
+            events = islice(
+                trento_gen(system, mlo=95, mhi=105, return_array=True), 1000
+            )
+            average_event = np.mean(list(events), axis=0)
+            np.save(cachefile, average_event)
+
+        dndy = average_event.sum()*grid_step**2
+
+        xymax = grid_max[system]
+        ax.imshow(average_event, extent=(-xymax, xymax, -xymax, xymax),
+                  cmap=cmap_to_alpha())
+
+        ax.set_xlabel('$x$ [fm]')
+        if ax.is_first_col():
+            ax.set_ylabel('$y$ [fm]')
+
+        ax.set_title('{}, 5.02 TeV'.format('-'.join(system.split())))
+        ax.annotate(r'$\langle dN_g/dy \rangle={0:.2f}$'.format(dndy), xy=(.9, .9),
+                    xycoords='axes fraction', ha='right')
+
+        ax.set_xlim(-5, 5)
+        ax.set_ylim(-5, 5)
+        ax.set_xticks([-4, -2, 0, 2, 4])
+        ax.set_yticks([-4, -2, 0, 2, 4])
+
+        ax.set_aspect('equal')
+
+    set_tight(fig)
 
 
 def main():
