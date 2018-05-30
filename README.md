@@ -25,10 +25,10 @@ to regenerate the figures. This could take some time.
 The following documentation describes each of the figures in the `plots` directory.
 
 ### Multiplicity distribution
-<img src="plots/mult_dist.png", width="42">
+<img src="plots/mult_dist.png" width="60%">
 
 ### Single-shot events
-<img src="plots/single_shot_events.png", width="42">
+<img src="plots/single_shot_events.png" width="100%">
 
 ### Isotherms
-<img src="plots/isotherms.png", width="42">
+<img src="plots/isotherms.png" width="60%">
