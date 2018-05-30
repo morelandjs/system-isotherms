@@ -2,4 +2,3 @@ parton-width = 0.410589
 trento-args = --cross-section 7.0 --normalization 20.4480368065946 --reduced-thickness 0.010533442135526972 --fluctuation 0.20643 --nucleon-min-dist 0.835278 --nucleon-width 0.8891912078691001 --parton-number 6
 tau-fs = 0.4098283500703207
 hydro-args = etas_min=0.11344278003977029 etas_slope=1.0889072484174704 etas_curv=-0.14814725741371448 zetas_max=0.04490119742011057 zetas_width=0.023653774065019395 zetas_t0=0.18141598544829535
-Tswitch = 0.155
