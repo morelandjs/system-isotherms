@@ -365,7 +365,8 @@ def mult_dist():
         label = '{}, {}'.format('-'.join(system.split()), cent)
         plt.hist(dndy, bins=bins, histtype='step', label=label)
 
-    plt.axvline(100, dashes=(4, 2), color=offblack)
+    plt.axvline(95, dashes=(4, 2), color=offblack)
+    plt.axvline(105, dashes=(4, 2), color=offblack)
 
     plt.xlabel(r'$dN_\rho/dy$')
     plt.xlim(0, 300)
