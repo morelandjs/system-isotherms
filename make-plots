@@ -108,8 +108,8 @@ def plot(f):
 
         fig = plt.gcf()
 
-        plotfile = plotdir / '{}.pdf'.format(f.__name__)
-        fig.savefig(str(plotfile))
+        plotfile = plotdir / '{}.png'.format(f.__name__)
+        fig.savefig(str(plotfile), dpi=300)
         logging.info('wrote %s', plotfile)
         plt.close(fig)
 
