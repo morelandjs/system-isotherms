@@ -24,8 +24,8 @@ to regenerate the figures. This could take some time.
 
 The following documentation describes each of the figures in the `plots` directory.
 
-### Multiplicity distributions and event selection
-<img src="plots/mult_dist.png", width="42">
+### Multiplicity distribution and event selection
+<img src="plots/mult_dist.png" width="60%">
 
 I start by running 10<sup>5</sup> minimum bias p-p, p-Pb and Pb-Pb trento events using _maximum a posteriori_ parameters determined from a combined fit to p-Pb and Pb-Pb yields, mean p<sub>T</sub>, and flows at √s=5.02 TeV (Quark Matter 2018 talk).
 
@@ -37,13 +37,13 @@ This multiplicity/centrality cut is illustrated by black vertical lines in the a
 Note that _zero_ p-p events fall within this trigger due to the much smaller number of particles produced in p-p collisions. To remedy this issue, I rescale the p-p multiplicity distribution by an artificial scaling factor to increase the acceptance of my p-p multiplicity trigger.
 
 ### Single-shot events
-<img src="plots/single_shot_events.png", width="42">
+<img src="plots/single_shot_events.png" width="100%">
 
 Using this initial condition multiplicity cut, I then run a large number of initial condition events and yield events which fall within the specified trigger. The events are shifted into their center of mass frame and rotated so that the complex vector of the second eccentricity harmonic is aligned with the x-axis. The events are then averaged to generate a "single shot" initial condition profile.
 
 This figure shows the event-averaged profiles of dN<sub>ρ</sub>/(d<sup>2</sup>xdη) for each collision system. The initial parton densities dN<sub>ρ</sub>/dy are annotated on each subpanel.
 
 ### Isotherms
-<img src="plots/isotherms.png", width="42">
+<img src="plots/isotherms.png" width="60%">
 
 Finish writing this...
