@@ -25,10 +25,10 @@ to regenerate the figures. This could take some time.
 The following documentation describes each of the figures in the `plots` directory.
 
 ### Multiplicity distribution
-![alt text](https://github.com/morelandjs/system-isotherms/plots/mult_dist.png)
+![alt text](https://github.com/morelandjs/system-isotherms/tree/master/plots/mult_dist.png)
 
 ### Single-shot events
-![alt text](https://github.com/morelandjs/system-isotherms/plots/single_shot_events.png)
+![alt text](https://github.com/morelandjs/system-isotherms/tree/master/plots/single_shot_events.png)
 
 ### Isotherms
-![alt text](https://github.com/morelandjs/system-isotherms/plots/isotherms.png)
+![alt text](https://github.com/morelandjs/system-isotherms/tree/master/plots/isotherms.png)
