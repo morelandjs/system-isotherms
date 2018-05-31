@@ -25,7 +25,7 @@ to regenerate the figures. This could take some time. The first time the make-pl
 The following documentation describes each of the figures in the `plots` directory.
 
 ### Multiplicity distribution and event selection
-<img src="plots/mult_dist.png" width="80%">
+<img src="plots/mult_dist.png" width="60%">
 
 I start by running 10<sup>5</sup> minimum bias p-p, p-Pb and Pb-Pb trento events using _maximum a posteriori_ parameters determined from a combined fit to p-Pb and Pb-Pb yields, mean p<sub>T</sub>, and flows at √s=5.02 TeV (Quark Matter 2018 talk).
 
@@ -37,7 +37,7 @@ This multiplicity/centrality cut is illustrated by black vertical lines in the a
 Note that _zero_ p-p events fall within this trigger due to the much smaller number of particles produced in p-p collisions. To remedy this issue, I rescale the p-p multiplicity distribution by an artificial scaling factor to increase the acceptance of my p-p multiplicity trigger. Since p-p events have roughly constant eccentricity as a function of charged particle multiplicity, this ad hoc rescaling factor is unlikely to degrade the predictions of the model.
 
 ### Single-shot events
-<img src="plots/single_shot_events.png" width="90%">
+<img src="plots/single_shot_events.png" width="100%">
 
 Using this initial condition multiplicity cut, I then run a large number of initial condition events and yield events which fall within the specified trigger. The events are shifted into their center of mass frame and rotated so that the principal axis of the second eccentricity harmonic is aligned with the x-axis. The events are then averaged to generate a "single shot" initial condition profile.
 
@@ -46,4 +46,4 @@ The figure above shows the event-averaged profiles of dN<sub>ρ</sub>/(d<sup>2</
 ### Isotherms
 <img src="plots/isotherms.png" width="100%">
 
-This figure shows the isotherms for p-p, p-Pb and Pb-Pb events at 100, 155 and 200 MeV for the single-shot initial condition events discussed previously. The colored dots in the figure are points (r, τ) on the boost-invariant isotherm hypersurface, where r<sup>2</sup> = x<sup>2</sup> + y<sup>2</sup>. The isotherms are regions (bands) and not lines since the initial profile are deformed. The spurious points in the T=100 MeV isotherm plot are artifacts from the event averaging procedure and would disappear in the limit of infinite statistics.
+This figure shows the isotherms for p-p, p-Pb and Pb-Pb events at T=100, 155 and 200 MeV for the single-shot initial condition events discussed previously. The colored dots in the figure are points (r, τ) on the boost-invariant isotherm hypersurface, where r<sup>2</sup> = x<sup>2</sup> + y<sup>2</sup>. The isotherms are regions (bands) and not lines since the initial profiles are deformed. The spurious points in the T=100 MeV isotherm plot are artifacts from the event averaging procedure and would disappear in the limit of infinite statistics.
