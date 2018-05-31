@@ -440,7 +440,7 @@ def isotherms():
     Plot p-p, p-Pb and Pb-Pb isotherms at 100, 155 and 200 MeV.
 
     """
-    fig, axes = plt.subplots(nrows=3, figsize=figsize(.5, 3), sharex=True)
+    fig, axes = plt.subplots(ncols=3, figsize=figsize(1, .35), sharex=True)
     temperatures = ['0.200', '0.155', '0.100'] # MeV
     systems = ['Pb Pb', 'p Pb', 'p p']
     markers = ['o', 's', 'p']
@@ -465,17 +465,18 @@ def isotherms():
                 tau, x, y = surface['x'][::10].T
                 r = np.sqrt(x**2 + y**2)
 
-                label = '{}, $5.02$ TeV'.format('-'.join(system.split()))
+                label = '{}'.format('-'.join(system.split()))
                 ax.plot(r, tau, marker, ms=2, label=label)
 
-        if ax.is_last_row():
-            ax.set_xlabel('$r$ [fm]')
+        ax.set_xlabel('$r$ [fm]')
+        if ax.is_first_col():
+            ax.set_ylabel(r'$\tau$ [fm/$c$]')
 
-        ax.set_ylabel(r'$\tau$ [fm/$c$]')
-        ax.annotate('$T={}$ GeV'.format(temp), xy=(.95, .1),
-                    xycoords='axes fraction', ha='right')
+        ax.set_title('$T={}$ GeV'.format(temp))
+        #ax.annotate('$T={}$ GeV'.format(temp), xy=(.95, .1),
+        #            xycoords='axes fraction', ha='right')
 
-        if ax.is_first_row():
+        if ax.is_first_col():
             ax.legend(loc=1, markerscale=2, handletextpad=0)
 
     set_tight()

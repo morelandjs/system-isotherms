@@ -25,7 +25,7 @@ to regenerate the figures. This could take some time. The first time the make-pl
 The following documentation describes each of the figures in the `plots` directory.
 
 ### Multiplicity distribution and event selection
-<img src="plots/mult_dist.png" width="60%">
+<img src="plots/mult_dist.png" width="80%">
 
 I start by running 10<sup>5</sup> minimum bias p-p, p-Pb and Pb-Pb trento events using _maximum a posteriori_ parameters determined from a combined fit to p-Pb and Pb-Pb yields, mean p<sub>T</sub>, and flows at √s=5.02 TeV (Quark Matter 2018 talk).
 
@@ -44,6 +44,6 @@ Using this initial condition multiplicity cut, I then run a large number of init
 The figure above shows the event-averaged profiles of dN<sub>ρ</sub>/(d<sup>2</sup>xdη) for each collision system. The initial parton densities dN<sub>ρ</sub>/dy are annotated on each subpanel. The ellipticity (almond shape) of each event is clearly visible. Interestingly, the profiles appear roughly self-similar up to and overall scaling factor. 
 
 ### Isotherms
-<img src="plots/isotherms.png" width="60%">
+<img src="plots/isotherms.png" width="100%">
 
 This figure shows the isotherms for p-p, p-Pb and Pb-Pb events at 100, 155 and 200 MeV for the single-shot initial condition events discussed previously. The colored dots in the figure are points (r, τ) on the boost-invariant isotherm hypersurface, where r<sup>2</sup> = x<sup>2</sup> + y<sup>2</sup>. The isotherms are regions (bands) and not lines since the initial profile are deformed. The spurious points in the T=100 MeV isotherm plot are artifacts from the event averaging procedure and would disappear in the limit of infinite statistics.
