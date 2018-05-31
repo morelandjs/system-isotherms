@@ -404,7 +404,7 @@ def single_shot_events():
             average_event = np.load(cachefile)
         else:
             events = islice(
-                trento_gen(system, mlo=95, mhi=105, return_array=True), 100
+                trento_gen(system, mlo=95, mhi=105, return_array=True), 1000
             )
             average_event = np.mean(list(events), axis=0)
             np.save(cachefile, average_event)
