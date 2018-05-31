@@ -37,7 +37,7 @@ This multiplicity/centrality cut is illustrated by black vertical lines in the a
 Note that _zero_ p-p events fall within this trigger due to the much smaller number of particles produced in p-p collisions. To remedy this issue, I rescale the p-p multiplicity distribution by an artificial scaling factor to increase the acceptance of my p-p multiplicity trigger. Since p-p events have roughly constant eccentricity as a function of charged particle multiplicity, this ad hoc rescaling factor is unlikely to degrade the predictions of the model.
 
 ### Single-shot events
-<img src="plots/single_shot_events.png" width="100%">
+<img src="plots/single_shot_events.png" width="90%">
 
 Using this initial condition multiplicity cut, I then run a large number of initial condition events and yield events which fall within the specified trigger. The events are shifted into their center of mass frame and rotated so that the principal axis of the second eccentricity harmonic is aligned with the x-axis. The events are then averaged to generate a "single shot" initial condition profile.
 
