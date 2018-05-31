@@ -92,7 +92,7 @@ plotdir.mkdir(exist_ok=True)
 
 plot_functions = {}
 
-grid_max = {'p p': 4, 'p Pb': 6, 'Pb Pb': 8}
+grid_max = {'p p': 4, 'p Pb': 6, 'Pb Pb': 10}
 grid_step = 0.082118
 
 
@@ -256,7 +256,7 @@ def center_and_rotate(grid, order=2):
 
     ecc, phi = eccentricity(grid, order)
     degrees = (360*phi)/(2*np.pi)
-    rotate(grid, -degrees, output=grid, reshape=False)
+    rotate(grid, 90 - degrees, output=grid, reshape=False)
 
     return grid
 
@@ -280,10 +280,10 @@ def trento_gen(system, mlo=0, mhi=float('inf'), return_array=False):
 
         proc = run_cmd(
             'trento {}'.format(system),
-            '--number-events {}'.format(10**4),
+            '--number-events {}'.format(10**4 if return_array else 10**6),
             '--normalization {}'.format(20.448),
             '--cross-section {}'.format(7.0),
-            '--reduced-thickness {}'.format(0.010533),
+            '--reduced-thickness {}'.format(0),
             '--fluctuation {}'.format(0.20643),
             '--nucleon-width {}'.format(0.88919),
             '--parton-number {}'.format(6),
@@ -348,7 +348,7 @@ def mult_dist():
     """
     plt.figure(figsize=figsize(.6))
     bins = np.linspace(0, 300, 100)
-    const_dndy = 100
+    const_dndy = 175
 
     for system in ['p p', 'p Pb', 'Pb Pb']:
 
@@ -358,7 +358,7 @@ def mult_dist():
         if cachefile.exists():
             dndy = np.load(cachefile)
         else:
-            dndy = np.fromiter(islice(trento_gen(system), 10**5), float)
+            dndy = np.fromiter(islice(trento_gen(system), 10**6), float)
             np.save(cachefile, dndy)
 
         cent = '{0:.3f}%'.format(100*sum(dndy > const_dndy)/dndy.size)
@@ -393,8 +393,8 @@ def single_shot_events():
     Plot the resulting 2D image profiles.
 
     """
-    fig, axes = plt.subplots(ncols=3, sharey=True, figsize=figsize(1, .4))
-    systems = ['p p', 'p Pb', 'Pb Pb']
+    fig, axes = plt.subplots(ncols=3, sharey=True, figsize=figsize(1, .41))
+    systems = ['Pb Pb', 'p Pb', 'p p']
 
     for ax, system in zip(axes, systems):
         cachefile = Path('cache', '{}-avg-event.npy'.format(''.join(system.split())))
@@ -410,7 +410,7 @@ def single_shot_events():
             np.save(cachefile, average_event)
 
         dndy = average_event.sum()*grid_step**2
-        dndy_max = np.max(average_event) if system == 'p p' else dndy_max
+        ecc2, phi2 = eccentricity(average_event, 2)
 
         xymax = grid_max[system]
         ax.imshow(average_event, extent=(-xymax, xymax, -xymax, xymax),
@@ -421,13 +421,18 @@ def single_shot_events():
             ax.set_ylabel('$y$ [fm]')
 
         ax.set_title('{}, 5.02 TeV'.format('-'.join(system.split())))
-        ax.annotate(r'$\langle dN_\rho/dy \rangle={0:.2f}$'.format(dndy), xy=(.9, .9),
-                    xycoords='axes fraction', ha='right')
+        ax.annotate(
+            '\n'.join([
+                r'$\langle dN_\rho/dy \rangle={0:.2f}$'.format(dndy),
+                r'$\varepsilon_2={0:.3f}$'.format(ecc2)
+            ]), xy=(.9, .1), xycoords='axes fraction', ha='right',
+            fontsize=fontsize['tiny']
+        )
 
-        ax.set_xticks([-4, -2, 0, 2, 4])
-        ax.set_yticks([-4, -2, 0, 2, 4])
-        ax.set_xlim(-5, 5)
-        ax.set_ylim(-5, 5)
+        ax.set_xticks([-6, -3, 0, 3, 6])
+        ax.set_yticks([-6, -3, 0, 3, 6])
+        ax.set_xlim(-7, 7)
+        ax.set_ylim(-7, 7)
 
         ax.set_aspect('equal')
 
@@ -440,44 +445,70 @@ def isotherms():
     Plot p-p, p-Pb and Pb-Pb isotherms at 100, 155 and 200 MeV.
 
     """
-    fig, axes = plt.subplots(ncols=3, figsize=figsize(1, .35), sharex=True)
+    fig, axes = plt.subplots(
+        nrows=2, ncols=3,
+        sharey=True,
+        figsize=figsize(1, .8)
+    )
+
     temperatures = ['0.200', '0.155', '0.100'] # MeV
     systems = ['Pb Pb', 'p Pb', 'p p']
-    markers = ['o', 's', 'p']
+    xlabels = [r'$x$ [fm]', r'$y$ [fm]']
 
-    for ax, temp in zip(axes, temperatures):
-        for system, marker in zip(systems, markers):
-            abbrev = system.replace(' ', '')
-            cachefile = Path('cache', '{}-{}.p'.format(abbrev, temp))
+    for ax_row, xlabel in zip(axes, xlabels):
+        for ax, system in zip(ax_row, systems):
+            for temp in temperatures:
+                abbrev = system.replace(' ', '')
+                cachefile = Path('cache', '{}-{}.p'.format(abbrev, temp))
 
-            if not cachefile.exists():
-                proc = run_cmd(
-                    'run-events',
-                    '--Tswitch {}'.format(temp),
-                    '@map-parameters',
-                    'cache/{}-avg-event.npy'.format(abbrev),
-                    str(cachefile)
+                if not cachefile.exists():
+                    proc = run_cmd(
+                        'run-events',
+                        '--Tswitch {}'.format(temp),
+                        '@map-parameters',
+                        'cache/{}-avg-event.npy'.format(abbrev),
+                        str(cachefile)
+                    )
+
+                with cachefile.open(mode='rb') as f:
+                    surface = pickle.load(f)
+
+                    tau, x, y = surface['x'].T
+                    tau -= 0.4098
+
+                    xymax = .05
+                    if ax.is_first_row():
+                        cut = (-xymax < y) & (y < xymax)
+                        r = x[cut]
+                        tau = tau[cut]
+                    if ax.is_last_row():
+                        cut = (-xymax < x) & (x < xymax)
+                        r = y[cut]
+                        tau = tau[cut]
+
+                    label = '$T={}$ MeV'.format(int(1000*float(temp)))
+                    ax.plot(r, tau, 'o', label=label)
+
+                    ax.set_xlim(0, 10)
+                    ax.set_ylim(0, 10)
+                    ax.set_aspect('equal')
+
+            ax.set_xticks([0, 2, 4, 6, 8])
+            ax.set_yticks([0, 2, 4, 6, 8, 10])
+
+            if ax.is_first_row():
+                ax.set_title(r'{}, 5.02 TeV'.format('-'.join(system.split())))
+
+            ax.set_xlabel(xlabel)
+
+            if ax.is_first_col():
+                ax.set_ylabel(r'$\tau - \tau_0$ [fm/$c$]')
+
+            if ax.is_last_col():
+                ax.legend(
+                    loc=4, markerscale=2, handletextpad=-0.2, borderpad=0,
+                    labelspacing=0.2
                 )
-
-            with cachefile.open(mode='rb') as f:
-                surface = pickle.load(f)
-
-                tau, x, y = surface['x'][::10].T
-                r = np.sqrt(x**2 + y**2)
-
-                label = '{}'.format('-'.join(system.split()))
-                ax.plot(r, tau, marker, ms=2, label=label)
-
-        ax.set_xlabel('$r$ [fm]')
-        if ax.is_first_col():
-            ax.set_ylabel(r'$\tau$ [fm/$c$]')
-
-        ax.set_title('$T={}$ GeV'.format(temp))
-        #ax.annotate('$T={}$ GeV'.format(temp), xy=(.95, .1),
-        #            xycoords='axes fraction', ha='right')
-
-        if ax.is_first_col():
-            ax.legend(loc=1, markerscale=2, handletextpad=0)
 
     set_tight()
 
