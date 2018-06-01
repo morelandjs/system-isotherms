@@ -280,7 +280,7 @@ def trento_gen(system, mlo=0, mhi=float('inf'), return_array=False):
 
         proc = run_cmd(
             'trento {}'.format(system),
-            '--number-events {}'.format(10**4 if return_array else 10**6),
+            '--number-events {}'.format(10**4 if return_array else 10**5),
             '--normalization {}'.format(20.448),
             '--cross-section {}'.format(7.0),
             '--reduced-thickness {}'.format(0),
@@ -347,7 +347,7 @@ def mult_dist():
 
     """
     plt.figure(figsize=figsize(.6))
-    bins = np.linspace(0, 300, 100)
+    bins = np.linspace(0, 375, 200)
     const_dndy = 175
 
     for system in ['p p', 'p Pb', 'Pb Pb']:
@@ -361,15 +361,15 @@ def mult_dist():
             dndy = np.fromiter(islice(trento_gen(system), 10**6), float)
             np.save(cachefile, dndy)
 
-        cent = '{0:.3f}%'.format(100*sum(dndy > const_dndy)/dndy.size)
+        cent = '{0:.1E}%'.format(100*sum(dndy > const_dndy)/dndy.size)
         label = '{}, {}'.format('-'.join(system.split()), cent)
         plt.hist(dndy, bins=bins, histtype='step', label=label)
 
-    plt.axvline(95, dashes=(4, 2), color=offblack)
-    plt.axvline(105, dashes=(4, 2), color=offblack)
+    plt.axvline(.95*const_dndy, dashes=(4, 2), color=offblack)
+    plt.axvline(1.05*const_dndy, dashes=(4, 2), color=offblack)
 
     plt.xlabel(r'$dN_\rho/dy$')
-    plt.xlim(0, 300)
+    plt.xlim(0, 375)
     plt.ylabel('Events')
     plt.ylim(1, 10**5)
     plt.yscale('log')
@@ -378,7 +378,8 @@ def mult_dist():
     leg = plt.legend(
         title='system, centrality',
         fontsize=fontsize['small'],
-        borderaxespad=0
+        borderaxespad=0,
+        loc=1
     )
     plt.setp(leg.get_title(), fontsize=fontsize['small'])
     set_tight()
