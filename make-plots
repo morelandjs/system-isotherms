@@ -280,7 +280,7 @@ def trento_gen(system, mlo=0, mhi=float('inf'), return_array=False):
 
         proc = run_cmd(
             'trento {}'.format(system),
-            '--number-events {}'.format(10**4 if return_array else 10**5),
+            '--number-events {}'.format(10**4 if return_array else 10**6),
             '--normalization {}'.format(20.448),
             '--cross-section {}'.format(7.0),
             '--reduced-thickness {}'.format(0),
@@ -290,7 +290,7 @@ def trento_gen(system, mlo=0, mhi=float('inf'), return_array=False):
             '--parton-width {}'.format(0.41059),
             '--nucleon-min-dist {}'.format(0.83528),
             '--grid-max {}'.format(grid_max[system]),
-            '--grid-step {}'.format(grid_step if return_array else 0.2),
+            '--grid-step {}'.format(grid_step if return_array else 0.41059),
             '--output {}'.format(cachefile) if return_array else ''
         )
 
@@ -298,7 +298,7 @@ def trento_gen(system, mlo=0, mhi=float('inf'), return_array=False):
             with h5py.File(cachefile, 'r') as f:
                 for ev in f.values():
                     mult = ev.attrs['mult']
-                    renorm = (3 if system == 'p p' else 1)
+                    renorm = {'p p': 3.5, 'p Pb': 1.5, 'Pb Pb': 1}[system]
                     if mlo < renorm*mult < mhi:
                         yield renorm * center_and_rotate(ev)
         else:
@@ -347,8 +347,8 @@ def mult_dist():
 
     """
     plt.figure(figsize=figsize(.6))
-    bins = np.linspace(0, 375, 200)
-    const_dndy = 175
+    bins = np.linspace(0, 400, 200)
+    const_dndy = 200
 
     for system in ['p p', 'p Pb', 'Pb Pb']:
 
@@ -358,7 +358,7 @@ def mult_dist():
         if cachefile.exists():
             dndy = np.load(cachefile)
         else:
-            dndy = np.fromiter(islice(trento_gen(system), 10**6), float)
+            dndy = np.fromiter(islice(trento_gen(system), 10**5), float)
             np.save(cachefile, dndy)
 
         cent = '{0:.1E}%'.format(100*sum(dndy > const_dndy)/dndy.size)
@@ -369,7 +369,7 @@ def mult_dist():
     plt.axvline(1.05*const_dndy, dashes=(4, 2), color=offblack)
 
     plt.xlabel(r'$dN_\rho/dy$')
-    plt.xlim(0, 375)
+    plt.xlim(0, 400)
     plt.ylabel('Events')
     plt.ylim(1, 10**5)
     plt.yscale('log')
@@ -396,8 +396,9 @@ def single_shot_events():
     """
     fig, axes = plt.subplots(ncols=3, sharey=True, figsize=figsize(1, .41))
     systems = ['Pb Pb', 'p Pb', 'p p']
+    mult_factors = [137.13, 171.57, 201.26]
 
-    for ax, system in zip(axes, systems):
+    for ax, system, mult in zip(axes, systems, mult_factors):
         cachefile = Path('cache', '{}-avg-event.npy'.format(''.join(system.split())))
         cachefile.parent.mkdir(parents=True, exist_ok=True)
 
@@ -405,7 +406,8 @@ def single_shot_events():
             average_event = np.load(cachefile)
         else:
             events = islice(
-                trento_gen(system, mlo=95, mhi=105, return_array=True), 1000
+                trento_gen(system, mlo=.95*mult, mhi=1.05*mult, return_array=True),
+                1000
             )
             average_event = np.mean(list(events), axis=0)
             np.save(cachefile, average_event)
@@ -426,7 +428,7 @@ def single_shot_events():
             '\n'.join([
                 r'$\langle dN_\rho/dy \rangle={0:.2f}$'.format(dndy),
                 r'$\varepsilon_2={0:.3f}$'.format(ecc2)
-            ]), xy=(.9, .1), xycoords='axes fraction', ha='right',
+            ]), xy=(.95, .05), xycoords='axes fraction', ha='right',
             fontsize=fontsize['tiny']
         )
 
