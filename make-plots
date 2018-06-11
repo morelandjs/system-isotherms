@@ -467,6 +467,7 @@ def isotherms_all():
 
     temperatures = ['0.200', '0.155', '0.100'] # MeV
     xlabels = [r'$x$ [fm]', r'$y$ [fm]']
+    title = r'$dN_\mathrm{ch}/d\eta=100$'
 
     for ax_row, xlabel in zip(axes, xlabels):
         for ax, (system, mult) in zip(ax_row, systems_all):
@@ -509,7 +510,9 @@ def isotherms_all():
             ax.set_yticks([0, 2, 4, 6, 8, 10])
 
             if ax.is_first_row():
-                ax.set_title(r'{}, 5.02 TeV'.format('-'.join(system.split())))
+                ax.set_title(
+                    '{}, 5.02 TeV\n{}'.format(system, title)
+                )
 
             ax.set_xlabel(xlabel)
 
@@ -522,7 +525,7 @@ def isotherms_all():
                     labelspacing=0.2
                 )
 
-    set_tight()
+    set_tight(pad=.2)
 
 
 @plot

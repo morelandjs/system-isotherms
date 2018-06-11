@@ -46,6 +46,6 @@ The figure above shows the event-averaged profiles of dN<sub>ρ</sub>/(d<sup>2</
 
 This figure shows the isotherms for p-p, p-Pb and Pb-Pb events at T=100, 155 and 200 MeV for the single-shot initial condition events discussed previously for y=0 fm (top row) and x=0 fm (bottom row). The colored dots in the figure are points (r, τ) on the boost-invariant isotherm hypersurface, where r<sup>2</sup> = x<sup>2</sup> + y<sup>2</sup>. The isotherms along x and along y are slightly different since the initial profiles are deformed. The slight wiggle in the T=100 MeV isotherm of the bottom-middle panel is an artifact from the event averaging procedure and would disappear in the limit of infinite statistics.
 
-<img src="plots/isotherms_pp.png" width="100%">
+<img src="plots/isotherms_pp.png" width="66%">
 
 This figure also shows collision isotherms at T=100, 155 and 200 MeV, but for p-p events with two different multiplicity cuts <dN<sub>ch</sub>/dη> = 20 and 100 (left and right columns).
