@@ -2,7 +2,7 @@
 
 import argparse
 from collections import OrderedDict
-from itertools import islice
+from itertools import islice, chain
 import logging
 from pathlib import Path
 import pickle
@@ -92,8 +92,16 @@ plotdir.mkdir(exist_ok=True)
 
 plot_functions = {}
 
-grid_max = {'p p': 4, 'p Pb': 6, 'Pb Pb': 10}
-mult_factors = [137.13, 171.57, 201.26]
+
+"""
+Specify the grid-max and required dN/dy multiplicities for
+each collision species, such that dNch/deta = 100.
+
+"""
+systems_all = [('Pb-Pb', 137.13), ('p-Pb', 171.57), ('p-p', 201.26)]
+systems_pp = [('p-p',  28.39), ('p-p', 201.26)]
+
+grid_max = {'Pb-Pb': 10, 'p-Pb': 6, 'p-p': 4}
 grid_step = 0.082118
 
 
@@ -280,7 +288,7 @@ def trento_gen(system, mlo=0, mhi=float('inf'), return_array=False):
             cachefile.unlink()
 
         proc = run_cmd(
-            'trento {}'.format(system),
+            'trento {}'.format(system.replace('-', ' ')),
             '--number-events {}'.format(10**4 if return_array else 10**6),
             '--normalization {}'.format(20.448),
             '--cross-section {}'.format(7.0),
@@ -299,7 +307,7 @@ def trento_gen(system, mlo=0, mhi=float('inf'), return_array=False):
             with h5py.File(cachefile, 'r') as f:
                 for ev in f.values():
                     mult = ev.attrs['mult']
-                    renorm = {'p p': 3.5, 'p Pb': 1.5, 'Pb Pb': 1}[system]
+                    renorm = {'p-p': 3.5, 'p-Pb': 1.5, 'Pb-Pb': 1}[system]
                     if mlo < renorm*mult < mhi:
                         yield renorm * center_and_rotate(ev)
         else:
@@ -349,21 +357,20 @@ def mult_dist():
     """
     plt.figure(figsize=figsize(.6))
     bins = np.linspace(0, 400, 200)
-    systems = ['p p', 'p Pb', 'Pb Pb']
 
-    for system, mult, color in zip(systems, mult_factors, colors.values()):
+    for (system, mult), color in zip(systems_all, colors.values()):
 
-        cachefile = Path('cache', '{}-mult.npy'.format(''.join(system.split())))
+        cachefile = Path('cache', '{}-mult.npy'.format(system))
         cachefile.parent.mkdir(parents=True, exist_ok=True)
 
         if cachefile.exists():
             dndy = np.load(cachefile)
         else:
-            dndy = np.fromiter(islice(trento_gen(system), 10**5), float)
+            dndy = np.fromiter(islice(trento_gen(system), 10**3), float)
             np.save(cachefile, dndy)
 
         cent = '{0:.1E}%'.format(100*sum(dndy > mult)/dndy.size)
-        label = '{}, {}'.format('-'.join(system.split()), cent)
+        label = '{}, {}'.format(system, cent)
         plt.hist(dndy, bins=bins, histtype='step', label=label, color=color)
         plt.axvline(mult, dashes=(4, 2), color=color)
 
@@ -380,6 +387,7 @@ def mult_dist():
         borderaxespad=0,
         loc=1
     )
+
     plt.setp(leg.get_title(), fontsize=fontsize['small'])
     set_tight()
 
@@ -394,18 +402,21 @@ def single_shot_events():
 
     """
     fig, axes = plt.subplots(ncols=3, sharey=True, figsize=figsize(1, .41))
-    systems = ['Pb Pb', 'p Pb', 'p p']
 
-    for ax, system, mult in zip(axes, systems, mult_factors):
-        cachefile = Path('cache', '{}-avg-event.npy'.format(''.join(system.split())))
+    for n, (system, mult) in enumerate(chain(systems_all, systems_pp)):
+        cachefile = Path('cache', '{}-{}.npy'.format(system, mult))
         cachefile.parent.mkdir(parents=True, exist_ok=True)
 
         if cachefile.exists():
             average_event = np.load(cachefile)
         else:
             events = islice(
-                trento_gen(system, mlo=.95*mult, mhi=1.05*mult, return_array=True),
-                1000
+                trento_gen(
+                    system,
+                    mlo=.95*mult,
+                    mhi=1.05*mult,
+                    return_array=True
+                ), 1000
             )
             average_event = np.mean(list(events), axis=0)
             np.save(cachefile, average_event)
@@ -413,35 +424,37 @@ def single_shot_events():
         dndy = average_event.sum()*grid_step**2
         ecc2, phi2 = eccentricity(average_event, 2)
 
-        xymax = grid_max[system]
-        ax.imshow(average_event, extent=(-xymax, xymax, -xymax, xymax),
-                  cmap=cmap_to_alpha())
+        if n < 3:
+            ax = axes[n]
+            xymax = grid_max[system]
+            extent=(-xymax, xymax, -xymax, xymax)
+            ax.imshow(average_event, extent=extent, cmap=cmap_to_alpha())
 
-        ax.set_xlabel('$x$ [fm]')
-        if ax.is_first_col():
-            ax.set_ylabel('$y$ [fm]')
+            ax.set_xlabel('$x$ [fm]')
+            if ax.is_first_col():
+                ax.set_ylabel('$y$ [fm]')
 
-        ax.set_title('{}, 5.02 TeV'.format('-'.join(system.split())))
-        ax.annotate(
-            '\n'.join([
-                r'$\langle dN_\rho/dy \rangle={0:.2f}$'.format(dndy),
-                r'$\varepsilon_2={0:.3f}$'.format(ecc2)
-            ]), xy=(.95, .05), xycoords='axes fraction', ha='right',
-            fontsize=fontsize['tiny']
-        )
+            ax.set_title('{}, 5.02 TeV'.format('-'.join(system.split())))
+            ax.annotate(
+                '\n'.join([
+                    r'$\langle dN_\rho/dy \rangle={0:.2f}$'.format(dndy),
+                    r'$\varepsilon_2={0:.3f}$'.format(ecc2)
+                ]), xy=(.95, .05), xycoords='axes fraction', ha='right',
+                fontsize=fontsize['tiny']
+            )
 
-        ax.set_xticks([-6, -3, 0, 3, 6])
-        ax.set_yticks([-6, -3, 0, 3, 6])
-        ax.set_xlim(-7, 7)
-        ax.set_ylim(-7, 7)
+            ax.set_xticks([-6, -3, 0, 3, 6])
+            ax.set_yticks([-6, -3, 0, 3, 6])
+            ax.set_xlim(-7, 7)
+            ax.set_ylim(-7, 7)
 
-        ax.set_aspect('equal')
+            ax.set_aspect('equal')
 
     set_tight(fig)
 
 
 @plot
-def isotherms():
+def isotherms_all():
     """
     Plot p-p, p-Pb and Pb-Pb isotherms at 100, 155 and 200 MeV.
 
@@ -453,21 +466,19 @@ def isotherms():
     )
 
     temperatures = ['0.200', '0.155', '0.100'] # MeV
-    systems = ['Pb Pb', 'p Pb', 'p p']
     xlabels = [r'$x$ [fm]', r'$y$ [fm]']
 
     for ax_row, xlabel in zip(axes, xlabels):
-        for ax, system in zip(ax_row, systems):
+        for ax, (system, mult) in zip(ax_row, systems_all):
             for temp in temperatures:
-                abbrev = system.replace(' ', '')
-                cachefile = Path('cache', '{}-{}.p'.format(abbrev, temp))
+                cachefile = Path('cache', '{}_{}_{}.p'.format(system, mult, temp))
 
                 if not cachefile.exists():
                     proc = run_cmd(
                         'run-events',
                         '--Tswitch {}'.format(temp),
                         '@map-parameters',
-                        'cache/{}-avg-event.npy'.format(abbrev),
+                        'cache/{}-{}.npy'.format(system, mult),
                         str(cachefile)
                     )
 
@@ -508,6 +519,79 @@ def isotherms():
             if ax.is_last_col():
                 ax.legend(
                     loc=4, markerscale=2, handletextpad=-0.2, borderpad=0,
+                    labelspacing=0.2
+                )
+
+    set_tight()
+
+
+@plot
+def isotherms_pp():
+    """
+    Plot p-p isotherms at 100, 155 and 200 MeV for dNch/deta = 20 and 100
+
+    """
+    fig, axes = plt.subplots(
+        nrows=2, ncols=2,
+        sharey=True,
+        figsize=figsize(.66, 1.2)
+    )
+
+    temperatures = ['0.200', '0.155', '0.100'] # MeV
+    xlabels = [r'$x$ [fm]', r'$y$ [fm]']
+    titles = [r'$dN_\mathrm{ch}/d\eta=20$', r'$dN_\mathrm{ch}/d\eta=100$']
+
+    for ax_row, xlabel in zip(axes, xlabels):
+        for ax, title, (system, mult) in zip(ax_row, titles, systems_pp):
+            for temp in temperatures:
+                cachefile = Path('cache', '{}_{}_{}.p'.format(system, mult, temp))
+
+                if not cachefile.exists():
+                    proc = run_cmd(
+                        'run-events',
+                        '--Tswitch {}'.format(temp),
+                        '@map-parameters',
+                        'cache/{}-{}.npy'.format(system, mult),
+                        str(cachefile)
+                    )
+
+                with cachefile.open(mode='rb') as f:
+                    surface = pickle.load(f)
+
+                    tau, x, y = surface['x'].T
+                    tau -= 0.4098
+
+                    xymax = .05
+                    if ax.is_first_row():
+                        cut = (-xymax < y) & (y < xymax)
+                        r = x[cut]
+                        tau = tau[cut]
+                    if ax.is_last_row():
+                        cut = (-xymax < x) & (x < xymax)
+                        r = y[cut]
+                        tau = tau[cut]
+
+                    label = '$T={}$ MeV'.format(int(1000*float(temp)))
+                    ax.plot(r, tau, 'o', label=label)
+
+                    ax.set_xlim(0, 10)
+                    ax.set_ylim(0, 10)
+                    ax.set_aspect('equal')
+
+            ax.set_xticks([0, 2, 4, 6, 8])
+            ax.set_yticks([0, 2, 4, 6, 8, 10])
+
+            if ax.is_first_row():
+                ax.set_title('{}, 5.02 TeV\n{}'.format(system, title))
+
+            ax.set_xlabel(xlabel)
+
+            if ax.is_first_col():
+                ax.set_ylabel(r'$\tau - \tau_0$ [fm/$c$]')
+
+            if ax.is_first_col():
+                ax.legend(
+                    loc=2, markerscale=2, handletextpad=-0.2, borderpad=0,
                     labelspacing=0.2
                 )
 
